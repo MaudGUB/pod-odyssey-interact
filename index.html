@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pyramide en direct — POD Odyssey</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-database.js"></script>
+<style>
+  :root {
+    --pod-purple: #c8b5e8;
+    --pod-pink: #f2a8bc;
+    --pod-green: #a8c4b8;
+    --pod-orange: #f5926a;
+    --pod-yellow: #e8c96a;
+    --pod-blue: #bdd1ff;
+    --pod-ink: #002060;
+    --pod-bg: #fbfbfd;
+    --pod-surface: #ffffff;
+    --line: rgb(0 32 96 / 10%);
+    --line-soft: rgb(0 32 96 / 6%);
+    --muted: rgb(0 32 96 / 52%);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--pod-bg);
+    color: var(--pod-ink);
+    font-family: Inter, Avenir, 'Segoe UI', Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, p { margin: 0; text-wrap: balance; }
+
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  [hidden] { display: none !important; }
+
+  /* ---------- shared shell ---------- */
+  .status-banner {
+    display: none;
+    align-items: center;
+    gap: 0.6em;
+    margin: 0 0 20px;
+    padding: 12px 16px;
+    border: 1px solid rgb(245 146 106 / 35%);
+    border-radius: 12px;
+    background: rgb(245 146 106 / 10%);
+    color: var(--pod-ink);
+    font-size: 0.92rem;
+    font-weight: 600;
+  }
+
+  .status-banner.is-visible { display: flex; }
+
+  #presenterBanner { grid-column: 1 / -1; }
+
+  /* ================= PRESENTER VIEW ================= */
+  .stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+    gap: 40px;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 44px 32px 56px;
+  }
+
+  .stage-header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 8px;
+  }
+
+  .eyebrow {
+    display: block;
+    margin: 0 0 6px;
+    color: var(--pod-orange);
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  .stage-header h1 {
+    color: var(--pod-ink);
+    font-size: clamp(1.6rem, 2.6vw, 2.4rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+
+  .stage-header p {
+    margin-top: 6px;
+    max-width: 46ch;
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1.45;
+  }
+
+  .live-count {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+
+  .live-count .n {
+    color: var(--pod-ink);
+    font-size: 2.4rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .live-count .lbl {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--pod-green);
+    box-shadow: 0 0 0 4px rgb(168 196 184 / 30%);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+
+  /* -- results column: step-pyramid + live bars, tier by tier -- */
+  .results {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .tier {
+    display: grid;
+    grid-template-columns: 168px 1fr;
+    align-items: center;
+    gap: 22px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .tier:last-child { border-bottom: none; }
+
+  .tier-block {
+    justify-self: end;
+    height: 46px;
+    border-radius: 10px;
+    background: var(--tier-color);
+    box-shadow: inset 0 -10px 16px rgb(0 0 0 / 10%);
+  }
+
+  .tier-labels {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  .tier-labels > span:first-child {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .tier-name {
+    color: var(--pod-ink);
+    font-size: 0.98rem;
+    font-weight: 750;
+  }
+
+  .tier-sub {
+    display: block;
+    margin-top: 1px;
+    color: var(--muted);
+    font-size: 0.76rem;
+    font-weight: 500;
+  }
+
+  .tier-figure {
+    display: flex;
+    flex: none;
+    align-items: baseline;
+    gap: 6px;
+    white-space: nowrap;
+    color: var(--pod-ink);
+    font-weight: 800;
+    font-size: 0.98rem;
+  }
+
+  .tier-figure .votes {
+    color: var(--muted);
+    font-size: 0.76rem;
+    font-weight: 600;
+  }
+
+  .meter {
+    position: relative;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--line-soft);
+    overflow: hidden;
+  }
+
+  .meter-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: var(--tier-color);
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* -- QR / join panel -- */
+  .join-card {
+    align-self: start;
+    padding: 26px 24px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--pod-surface);
+    box-shadow: 0 18px 40px rgb(0 32 96 / 8%);
+    text-align: center;
+  }
+
+  .join-card h2 {
+    color: var(--pod-ink);
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .join-card > p {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 0.88rem;
+    line-height: 1.4;
+  }
+
+  .qr-frame {
+    display: grid;
+    place-items: center;
+    width: 200px;
+    height: 200px;
+    margin: 20px auto 14px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: #fff;
+  }
+
+  .qr-frame img, .qr-frame canvas, .qr-frame table { border-radius: 4px; }
+
+  .qr-fallback {
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+
+  .join-url {
+    display: block;
+    margin-top: 4px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgb(200 181 232 / 16%);
+    color: var(--pod-ink);
+    font-size: 0.86rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    word-break: break-all;
+  }
+
+  .reset-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--line);
+  }
+
+  .reset-btn {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .reset-btn:hover { border-color: var(--pod-orange); color: var(--pod-orange); }
+
+  .presenter-link {
+    display: block;
+    width: 100%;
+    margin-top: 26px;
+    padding: 10px 12px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.76rem;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+
+  .presenter-link:hover { color: var(--pod-ink); }
+
+  .org-note {
+    margin-top: 14px;
+    color: var(--muted);
+    font-size: 0.72rem;
+    line-height: 1.45;
+  }
+
+  /* ================= VOTER (PHONE) VIEW ================= */
+  .voter {
+    display: flex;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 20px 40px;
+  }
+
+  .voter-card {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .voter-eyebrow {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--pod-orange);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  .voter-card h1 {
+    color: var(--pod-ink);
+    font-size: clamp(1.35rem, 6vw, 1.7rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-align: center;
+  }
+
+  .voter-card > p.hint {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 0.92rem;
+    text-align: center;
+  }
+
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 26px;
+  }
+
+  .option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border: 2px solid var(--line);
+    border-radius: 16px;
+    background: var(--pod-surface);
+    color: var(--pod-ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  }
+
+  .option:active { transform: scale(0.985); }
+
+  .option-swatch {
+    flex: none;
+    width: 14px;
+    height: 40px;
+    border-radius: 6px;
+    background: var(--tier-color);
+  }
+
+  .option-text strong {
+    display: block;
+    font-size: 1.02rem;
+    font-weight: 750;
+  }
+
+  .option-text span {
+    display: block;
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+
+  .option-check {
+    margin-left: auto;
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--line);
+    display: grid;
+    place-items: center;
+  }
+
+  .option-check svg {
+    width: 14px;
+    height: 14px;
+    opacity: 0;
+    stroke: #fff;
+    stroke-width: 3;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .option.is-selected {
+    border-color: var(--tier-color);
+    background: color-mix(in srgb, var(--tier-color) 12%, #fff);
+  }
+
+  .option.is-selected .option-check {
+    background: var(--tier-color);
+    border-color: var(--tier-color);
+  }
+
+  .option.is-selected .option-check svg { opacity: 1; }
+
+  .voter-confirm {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 20px;
+    color: var(--pod-green);
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .voter-confirm[hidden] { display: none; }
+
+  @media (max-width: 860px) {
+    .stage { grid-template-columns: 1fr; padding: 28px 18px 40px; }
+    .stage-header { flex-direction: column; align-items: flex-start; }
+    .live-count { align-items: flex-start; }
+    .tier { grid-template-columns: 92px 1fr; gap: 14px; }
+    .tier-block { height: 34px; }
+    .join-card { order: -1; }
+  }
+</style>
+</head>
+<body>
+
+<div id="presenter" class="stage" hidden>
+  <div class="stage-header">
+    <div>
+      <span class="eyebrow">POD Odyssey — Les outils IA</span>
+      <h1>La pyramide, votée en direct</h1>
+      <p>Scannez le QR code pour indiquer l’étage que vous utilisez le plus aujourd’hui. Le résultat se met à jour ici en temps réel.</p>
+    </div>
+    <div class="live-count">
+      <span class="n tabular" id="totalVotes">0</span>
+      <span class="lbl"><span class="live-dot"></span>votes reçus</span>
+    </div>
+  </div>
+
+  <div id="presenterBanner" class="status-banner"></div>
+
+  <div class="results" id="results"></div>
+
+  <aside class="join-card">
+    <h2>Votez depuis votre téléphone</h2>
+    <p>Scannez ce code — aucune app à installer.</p>
+    <div class="qr-frame" id="qrFrame">
+      <p class="qr-fallback" id="qrFallback" hidden>QR indisponible hors-ligne : utilisez le lien ci-dessous.</p>
+    </div>
+    <code class="join-url" id="joinUrl">…</code>
+    <div class="reset-row">
+      <button type="button" class="reset-btn" id="resetBtn">Réinitialiser les votes</button>
+      <button type="button" class="reset-btn" id="toVoterBtn">Revenir à la vue vote (sur cet appareil)</button>
+    </div>
+    <p class="org-note">Ouvert à tout le monde — aucun compte requis, ni côté vote ni côté écran.</p>
+  </aside>
+</div>
+
+<div id="voter" class="voter" hidden>
+  <div class="voter-card">
+    <span class="voter-eyebrow">POD Odyssey — vote en direct</span>
+    <h1>Quel étage utilisez-vous le plus, aujourd’hui ?</h1>
+    <p class="hint">Un tap suffit. Vous pouvez changer d’avis à tout moment.</p>
+
+    <div id="voterBanner" class="status-banner"></div>
+
+    <div class="options" id="options"></div>
+
+    <p class="voter-confirm" id="voterConfirm" hidden>
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      Vote enregistré — regardez la pyramide sur l’écran.
+    </p>
+
+    <button type="button" class="presenter-link" id="toPresenterBtn">Vue présentateur (à réserver à l’ordinateur qui projette)</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // Same five families as Scene 02 of the deck; widths mirror the real
+  // pyramid's proportions (floor 1 = base = 100).
+  var FLOORS = [
+    { id: 0, label: 'Assistance Ad hoc', sub: 'AI Chat & agents', color: '#D9AB16', width: 100 },
+    { id: 1, label: 'Vibe coding', sub: 'Développement de produits avec l’IA', color: '#1F648F', width: 79 },
+    { id: 2, label: 'Agentique', sub: 'Automatisation de process métier', color: '#AA2078', width: 60 },
+    { id: 3, label: 'Talk to your Data', sub: 'Décisionnel & analytique via l’IA', color: '#2C9D62', width: 38 },
+    { id: 4, label: 'Product Build', sub: 'Création de prototypes avec l’IA', color: '#EC7C32', width: 18 }
+  ];
+
+  // This page's public, stable link — hosted on GitHub Pages, outside
+  // claude.ai, so it opens for anyone with no account needed. The QR
+  // always points here, plain, with no query string: "presenter" vs.
+  // "voter" is a per-device choice (below), not something encoded in the URL.
+  var PAGE_URL = 'https://maudgub.github.io/PODyssey/pyramide-vote.html';
+  var PRESENTER_KEY = 'podPyramidPresenterMode';
+
+  // Public Firebase project config — safe to expose client-side; access to
+  // the "votes" data is controlled by the Realtime Database rules, not by
+  // hiding this key. Anyone with the page link can vote, no account needed.
+  var FIREBASE_CONFIG = {
+    apiKey: 'AIzaSyDBsFDKyEc6jE7L7u7yK3xWQ7a9hi_psCs',
+    authDomain: 'pod-odyssey-interact.firebaseapp.com',
+    databaseURL: 'https://pod-odyssey-interact-default-rtdb.europe-west1.firebasedatabase.app',
+    projectId: 'pod-odyssey-interact',
+    storageBucket: 'pod-odyssey-interact.firebasestorage.app',
+    messagingSenderId: '1075684337730',
+    appId: '1:1075684337730:web:5ace185c293043950165db'
+  };
+
+  function isPresenterDevice() {
+    try {
+      return localStorage.getItem(PRESENTER_KEY) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function setPresenterDevice(value) {
+    try {
+      localStorage.setItem(PRESENTER_KEY, value ? '1' : '0');
+    } catch (e) {}
+  }
+
+  // Default view is the vote (most people opening the link are the
+  // audience); the projecting laptop switches itself once via the link
+  // at the bottom of the vote view, and that choice sticks on that device.
+  var isVoter = !isPresenterDevice();
+
+  document.getElementById(isVoter ? 'voter' : 'presenter').hidden = false;
+
+  function showBanner(id, text) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    el.classList.add('is-visible');
+  }
+
+  function getVoterId() {
+    try {
+      var k = 'podPyramidVoterId';
+      var v = localStorage.getItem(k);
+      if (!v) {
+        v = 'v-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem(k, v);
+      }
+      return v;
+    } catch (e) {
+      return 'v-' + Math.random().toString(36).slice(2, 10);
+    }
+  }
+
+  function renderQR() {
+    var frame = document.getElementById('qrFrame');
+    var fallback = document.getElementById('qrFallback');
+    if (window.QRCode) {
+      try {
+        new QRCode(frame, {
+          text: PAGE_URL,
+          width: 176,
+          height: 176,
+          colorDark: '#002060',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+        return;
+      } catch (e) {}
+    }
+    if (fallback) fallback.hidden = false;
+  }
+
+  function buildPresenter() {
+    var results = document.getElementById('results');
+    // Top of the pyramid first (visually), base last.
+    var ordered = FLOORS.slice().reverse();
+    ordered.forEach(function (f) {
+      var row = document.createElement('div');
+      row.className = 'tier';
+      row.style.setProperty('--tier-color', f.color);
+      row.innerHTML =
+        '<div class="tier-block" style="width:' + f.width + '%"></div>' +
+        '<div>' +
+          '<div class="tier-labels">' +
+            '<span><span class="tier-name">' + f.label + '</span><span class="tier-sub">' + f.sub + '</span></span>' +
+            '<span class="tier-figure"><span class="pct tabular" data-floor="' + f.id + '">0%</span><span class="votes tabular" data-floor-n="' + f.id + '">0 vote</span></span>' +
+          '</div>' +
+          '<div class="meter"><div class="meter-fill" data-floor-bar="' + f.id + '"></div></div>' +
+        '</div>';
+      results.appendChild(row);
+    });
+  }
+
+  function buildVoter() {
+    var opts = document.getElementById('options');
+    FLOORS.forEach(function (f) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'option';
+      btn.dataset.floor = f.id;
+      btn.style.setProperty('--tier-color', f.color);
+      btn.innerHTML =
+        '<span class="option-swatch"></span>' +
+        '<span class="option-text"><strong>' + f.label + '</strong><span>' + f.sub + '</span></span>' +
+        '<span class="option-check"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>';
+      opts.appendChild(btn);
+    });
+  }
+
+  function applyTally(counts, total) {
+    document.getElementById('totalVotes').textContent = total;
+    FLOORS.forEach(function (f) {
+      var n = counts[f.id] || 0;
+      var pct = total > 0 ? Math.round((n / total) * 100) : 0;
+      var pctEl = document.querySelector('[data-floor="' + f.id + '"]');
+      var nEl = document.querySelector('[data-floor-n="' + f.id + '"]');
+      var barEl = document.querySelector('[data-floor-bar="' + f.id + '"]');
+      if (pctEl) pctEl.textContent = pct + '%';
+      if (nEl) nEl.textContent = n + (n === 1 ? ' vote' : ' votes');
+      if (barEl) barEl.style.width = pct + '%';
+    });
+  }
+
+  function main() {
+    document.getElementById('joinUrl').textContent = PAGE_URL;
+    renderQR();
+    if (isVoter) buildVoter(); else buildPresenter();
+
+    var toPresenterBtn = document.getElementById('toPresenterBtn');
+    if (toPresenterBtn) {
+      toPresenterBtn.addEventListener('click', function () {
+        setPresenterDevice(true);
+        location.reload();
+      });
+    }
+    var toVoterBtn = document.getElementById('toVoterBtn');
+    if (toVoterBtn) {
+      toVoterBtn.addEventListener('click', function () {
+        setPresenterDevice(false);
+        location.reload();
+      });
+    }
+
+    if (typeof firebase === 'undefined' || !firebase.database) {
+      showBanner(isVoter ? 'voterBanner' : 'presenterBanner', 'Le service de vote n’a pas pu se charger — vérifiez votre connexion et rechargez la page.');
+      return;
+    }
+
+    firebase.initializeApp(FIREBASE_CONFIG);
+    var votesRef = firebase.database().ref('votes');
+
+    if (isVoter) {
+      var voterId = getVoterId();
+      var myRef = votesRef.child(voterId);
+
+      myRef.once('value').then(function (snap) {
+        if (snap.exists()) {
+          var data = snap.val();
+          var current = document.querySelector('.option[data-floor="' + data.floor + '"]');
+          if (current) current.classList.add('is-selected');
+          document.getElementById('voterConfirm').hidden = false;
+        }
+      }).catch(function () {});
+
+      document.querySelectorAll('.option').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var floorId = Number(btn.dataset.floor);
+          document.querySelectorAll('.option').forEach(function (o) { o.classList.remove('is-selected'); });
+          btn.classList.add('is-selected');
+          myRef.set({ floor: floorId, ts: Date.now() }).then(function () {
+            document.getElementById('voterConfirm').hidden = false;
+          }).catch(function () {
+            showBanner('voterBanner', 'Le vote n’a pas pu être enregistré — réessayez.');
+          });
+        });
+      });
+    } else {
+      votesRef.on('value', function (snap) {
+        var counts = {};
+        var total = 0;
+        snap.forEach(function (child) {
+          var d = child.val();
+          if (d && typeof d.floor === 'number') {
+            counts[d.floor] = (counts[d.floor] || 0) + 1;
+            total++;
+          }
+        });
+        applyTally(counts, total);
+      }, function () {
+        showBanner('presenterBanner', 'Connexion au vote en direct interrompue.');
+      });
+
+      document.getElementById('resetBtn').addEventListener('click', function () {
+        votesRef.remove().catch(function () {});
+      });
+    }
+  }
+
+  main();
+})();
+</script>
+</body>
+</html>
