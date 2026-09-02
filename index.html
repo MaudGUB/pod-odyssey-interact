@@ -427,7 +427,7 @@
     flex: none;
     width: 24px;
     height: 24px;
-    border-radius: 50%;
+    border-radius: 7px;
     border: 2px solid var(--line);
     display: grid;
     place-items: center;
@@ -487,11 +487,11 @@
     <div>
       <span class="eyebrow">POD Odyssey — Les outils IA</span>
       <h1>La pyramide, votée en direct</h1>
-      <p>Scannez le QR code pour indiquer l’étage que vous utilisez le plus aujourd’hui. Le résultat se met à jour ici en temps réel.</p>
+      <p>Scannez le QR code pour indiquer les initiatives déjà en place ou en cours dans votre entreprise. Le résultat se met à jour ici en temps réel.</p>
     </div>
     <div class="live-count">
       <span class="n tabular" id="totalVotes">0</span>
-      <span class="lbl"><span class="live-dot"></span>votes reçus</span>
+      <span class="lbl"><span class="live-dot"></span>participants</span>
     </div>
   </div>
 
@@ -517,8 +517,8 @@
 <div id="voter" class="voter" hidden>
   <div class="voter-card">
     <span class="voter-eyebrow">POD Odyssey — vote en direct</span>
-    <h1>Quel étage utilisez-vous le plus, aujourd’hui ?</h1>
-    <p class="hint">Un tap suffit. Vous pouvez changer d’avis à tout moment.</p>
+    <h1>Quelles initiatives avez-vous déjà mises en place, ou en cours d’implémentation, dans votre entreprise ?</h1>
+    <p class="hint">Cochez toutes celles qui s’appliquent. Vous pouvez changer d’avis à tout moment.</p>
 
     <div id="voterBanner" class="status-banner"></div>
 
@@ -526,7 +526,7 @@
 
     <p class="voter-confirm" id="voterConfirm" hidden>
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-      Vote enregistré — regardez la pyramide sur l’écran.
+      Sélection enregistrée — regardez la pyramide sur l’écran.
     </p>
 
     <button type="button" class="presenter-link" id="toPresenterBtn">Vue présentateur (à réserver à l’ordinateur qui projette)</button>
@@ -710,26 +710,43 @@
     if (isVoter) {
       var voterId = getVoterId();
       var myRef = votesRef.child(voterId);
+      var selectedFloors = {};
+
+      var persistSelection = function () {
+        var hasAny = Object.keys(selectedFloors).some(function (k) { return selectedFloors[k]; });
+        myRef.set({ floors: selectedFloors, ts: Date.now() }).then(function () {
+          document.getElementById('voterConfirm').hidden = !hasAny;
+        }).catch(function () {
+          showBanner('voterBanner', 'La sélection n’a pas pu être enregistrée — réessayez.');
+        });
+      };
 
       myRef.once('value').then(function (snap) {
-        if (snap.exists()) {
-          var data = snap.val();
-          var current = document.querySelector('.option[data-floor="' + data.floor + '"]');
-          if (current) current.classList.add('is-selected');
-          document.getElementById('voterConfirm').hidden = false;
+        if (!snap.exists()) return;
+        var data = snap.val();
+        if (data && data.floors && typeof data.floors === 'object') {
+          selectedFloors = data.floors;
+        } else if (data && typeof data.floor === 'number') {
+          // Migrates a legacy single-choice vote to the multi-select shape.
+          selectedFloors[data.floor] = true;
         }
+        var any = false;
+        Object.keys(selectedFloors).forEach(function (k) {
+          if (!selectedFloors[k]) return;
+          any = true;
+          var el = document.querySelector('.option[data-floor="' + k + '"]');
+          if (el) el.classList.add('is-selected');
+        });
+        document.getElementById('voterConfirm').hidden = !any;
       }).catch(function () {});
 
       document.querySelectorAll('.option').forEach(function (btn) {
         btn.addEventListener('click', function () {
-          var floorId = Number(btn.dataset.floor);
-          document.querySelectorAll('.option').forEach(function (o) { o.classList.remove('is-selected'); });
-          btn.classList.add('is-selected');
-          myRef.set({ floor: floorId, ts: Date.now() }).then(function () {
-            document.getElementById('voterConfirm').hidden = false;
-          }).catch(function () {
-            showBanner('voterBanner', 'Le vote n’a pas pu être enregistré — réessayez.');
-          });
+          var floorId = btn.dataset.floor;
+          var nowSelected = !btn.classList.contains('is-selected');
+          btn.classList.toggle('is-selected', nowSelected);
+          selectedFloors[floorId] = nowSelected ? true : null;
+          persistSelection();
         });
       });
     } else {
@@ -738,9 +755,17 @@
         var total = 0;
         snap.forEach(function (child) {
           var d = child.val();
-          if (d && typeof d.floor === 'number') {
-            counts[d.floor] = (counts[d.floor] || 0) + 1;
+          var selected = null;
+          if (d && d.floors && typeof d.floors === 'object') {
+            selected = Object.keys(d.floors).filter(function (k) { return d.floors[k]; }).map(Number);
+          } else if (d && typeof d.floor === 'number') {
+            selected = [d.floor];
+          }
+          if (selected && selected.length) {
             total++;
+            selected.forEach(function (floorId) {
+              counts[floorId] = (counts[floorId] || 0) + 1;
+            });
           }
         });
         applyTally(counts, total);
