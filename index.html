@@ -486,6 +486,55 @@
 
   .voter-confirm[hidden] { display: none; }
 
+  .voter-progress {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  .next-btn {
+    display: block;
+    width: 100%;
+    margin-top: 26px;
+    padding: 15px 18px;
+    border: none;
+    border-radius: 14px;
+    background: var(--pod-ink);
+    color: #fff;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 800;
+    text-align: center;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+  }
+
+  .next-btn:hover { opacity: 0.9; }
+
+  .thanks-card {
+    padding: 10px 4px;
+    text-align: center;
+  }
+
+  .thanks-card h1 {
+    color: var(--pod-ink);
+    font-size: clamp(1.2rem, 5.6vw, 1.55rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .thanks-card p {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 0.94rem;
+    line-height: 1.45;
+  }
+
   @media (max-width: 860px) {
     .stage { grid-template-columns: 1fr; padding: 28px 18px 40px; }
     .poll-block-header { flex-direction: column; align-items: flex-start; }
@@ -565,20 +614,32 @@
       confirmText: 'Sélection enregistrée — regardez l’écran.',
       participantsLabel: 'participants',
       options: [
-        { id: 'newbie', label: 'Le Newbie', sub: '« Jamais essayé »', color: '#A8C4B8', width: 100 },
-        { id: 'explorateur', label: 'L’explorateur', sub: '« J’utilise en perso »', color: '#E8C96A', width: 100 },
-        { id: 'batisseur', label: 'Le bâtisseur', sub: '« J’ai essayé »', color: '#F5926A', width: 100 },
-        { id: 'champion', label: 'Le champion', sub: '« J’utilise à fond »', color: '#C8B5E8', width: 100 }
+        { id: 'newbie', label: 'Le réticent', sub: '« Jamais essayé »', color: '#A8C4B8', width: 100 },
+        { id: 'explorateur', label: 'L’illusionné', sub: '« J’utilise en perso »', color: '#E8C96A', width: 100 },
+        { id: 'batisseur', label: 'Le frustré', sub: '« J’ai essayé »', color: '#F5926A', width: 100 },
+        { id: 'champion', label: 'Le shadow builder', sub: '« J’utilise à fond »', color: '#C8B5E8', width: 100 }
       ]
     }
   ];
 
   // This page's public, stable link — hosted on GitHub Pages, outside
-  // claude.ai, so it opens for anyone with no account needed. The QR
-  // always points here, plain, with no query string: "presenter" vs.
+  // claude.ai, so it opens for anyone with no account needed. "presenter" vs.
   // "voter" is a per-device choice (below), not something encoded in the URL.
+  // The deck's own QR codes append "?poll=<key>" so scanning from a given scene
+  // jumps straight to that scene's poll (see getInitialPollIndex below); the QR
+  // shown here in the presenter's join-card omits it and just starts at poll 1.
   var PAGE_URL = 'https://maudgub.github.io/pod-odyssey-interact/';
   var PRESENTER_KEY = 'podPyramidPresenterMode';
+
+  function getInitialPollIndex() {
+    try {
+      var key = new URLSearchParams(location.search).get('poll');
+      var idx = POLLS.findIndex(function (p) { return p.key === key; });
+      return idx >= 0 ? idx : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
 
   // Public Firebase project config — safe to expose client-side; access to
   // the vote data is controlled by the Realtime Database rules, not by
@@ -693,11 +754,15 @@
     });
   }
 
-  function buildVoterPoll(poll) {
+  // Voter view shows exactly one poll per screen — the audience taps "Suivant" to
+  // move on, so nobody sees the next scene's poll options before the talk gets there.
+  function buildVoterPoll(poll, index, total) {
     var wrap = document.getElementById('pollCards');
+    var isLast = index === total - 1;
     var section = document.createElement('section');
     section.className = 'poll-card';
     section.innerHTML =
+      (total > 1 ? '<span class="voter-progress">Vote ' + (index + 1) + ' / ' + total + '</span>' : '') +
       '<span class="voter-eyebrow">' + poll.eyebrow + '</span>' +
       '<h1>' + poll.voterTitle + '</h1>' +
       '<p class="hint">' + poll.hint + '</p>' +
@@ -705,7 +770,8 @@
       '<p class="voter-confirm" id="confirm-' + poll.key + '" hidden>' +
         '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' +
         poll.confirmText +
-      '</p>';
+      '</p>' +
+      '<button type="button" class="next-btn" id="next-' + poll.key + '">' + (isLast ? 'Terminé' : 'Suivant') + '</button>';
     wrap.appendChild(section);
 
     var opts = document.getElementById('options-' + poll.key);
@@ -721,6 +787,37 @@
         '<span class="option-check"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>';
       opts.appendChild(btn);
     });
+
+    document.getElementById('next-' + poll.key).addEventListener('click', function () {
+      if (isLast) {
+        renderThanksCard();
+      } else {
+        voterPollIndex = index + 1;
+        renderVoterPoll(voterPollIndex);
+      }
+    });
+  }
+
+  function renderThanksCard() {
+    var wrap = document.getElementById('pollCards');
+    wrap.innerHTML =
+      '<section class="poll-card thanks-card">' +
+        '<h1>Merci d’avoir voté !</h1>' +
+        '<p>Regardez l’écran — vos réponses s’affichent en direct.</p>' +
+      '</section>';
+  }
+
+  // firebaseRoot is set once Firebase is ready (see main()); renderVoterPoll re-renders
+  // and re-wires just the current poll each time the voter taps "Suivant".
+  var firebaseRoot = null;
+  function renderVoterPoll(index) {
+    var poll = POLLS[index];
+    if (!poll) return;
+    document.getElementById('pollCards').innerHTML = '';
+    buildVoterPoll(poll, index, POLLS.length);
+    // Paging works even if Firebase never came up (offline, blocked) — only
+    // persisting the vote itself needs it, same resilience as the original page.
+    if (firebaseRoot) wirePoll(poll, firebaseRoot);
   }
 
   function applyTally(poll, counts, total) {
@@ -818,12 +915,16 @@
     }
   }
 
+  var voterPollIndex = getInitialPollIndex();
+
   function main() {
     document.getElementById('joinUrl').textContent = PAGE_URL;
     renderQR();
 
     if (isVoter) {
-      POLLS.forEach(buildVoterPoll);
+      // Built unwired first so the voter sees the poll immediately even if
+      // Firebase is slow or fails to load; wiring (below) attaches once ready.
+      buildVoterPoll(POLLS[voterPollIndex], voterPollIndex, POLLS.length);
     } else {
       POLLS.forEach(buildPresenterPoll);
     }
@@ -850,7 +951,12 @@
 
     firebase.initializeApp(FIREBASE_CONFIG);
     var root = firebase.database().ref();
-    POLLS.forEach(function (poll) { wirePoll(poll, root); });
+    if (isVoter) {
+      firebaseRoot = root;
+      wirePoll(POLLS[voterPollIndex], root);
+    } else {
+      POLLS.forEach(function (poll) { wirePoll(poll, root); });
+    }
   }
 
   main();
