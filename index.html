@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vote en direct — POD Odyssey</title>
+<title>Vote en direct — POD Odyssey (vue présentateur)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-database.js"></script>
@@ -40,7 +40,6 @@
 
   [hidden] { display: none !important; }
 
-  /* ---------- shared shell ---------- */
   .status-banner {
     display: none;
     align-items: center;
@@ -57,7 +56,6 @@
 
   .status-banner.is-visible { display: flex; }
 
-  /* ================= PRESENTER VIEW ================= */
   .stage {
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
@@ -149,7 +147,6 @@
     50% { opacity: 0.45; }
   }
 
-  /* -- results column: step-pyramid + live bars, tier by tier -- */
   .results {
     display: flex;
     flex-direction: column;
@@ -239,10 +236,16 @@
     margin-top: 14px;
   }
 
-  /* -- QR / join panel -- */
+  /* -- QR / join panel : deux cartes, une par vote -- */
   .join-card {
     align-self: start;
-    padding: 26px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .join-tile {
+    padding: 22px 20px;
     border: 1px solid var(--line);
     border-radius: 20px;
     background: var(--pod-surface);
@@ -250,27 +253,27 @@
     text-align: center;
   }
 
-  .join-card h2 {
+  .join-tile h2 {
     color: var(--pod-ink);
-    font-size: 1.15rem;
+    font-size: 1.05rem;
     font-weight: 800;
     letter-spacing: -0.02em;
   }
 
-  .join-card > p {
+  .join-tile > p {
     margin-top: 6px;
     color: var(--muted);
-    font-size: 0.88rem;
+    font-size: 0.86rem;
     line-height: 1.4;
   }
 
   .qr-frame {
     display: grid;
     place-items: center;
-    width: 200px;
-    height: 200px;
-    margin: 20px auto 14px;
-    padding: 12px;
+    width: 168px;
+    height: 168px;
+    margin: 18px auto 12px;
+    padding: 10px;
     border: 1px solid var(--line);
     border-radius: 16px;
     background: #fff;
@@ -280,30 +283,21 @@
 
   .qr-fallback {
     color: var(--muted);
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     line-height: 1.4;
   }
 
   .join-url {
     display: block;
     margin-top: 4px;
-    padding: 10px 12px;
+    padding: 9px 11px;
     border-radius: 10px;
     background: rgb(200 181 232 / 16%);
     color: var(--pod-ink);
-    font-size: 0.86rem;
+    font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: -0.01em;
     word-break: break-all;
-  }
-
-  .reset-row {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 18px;
-    padding-top: 16px;
-    border-top: 1px dashed var(--line);
   }
 
   .reset-btn {
@@ -321,218 +315,12 @@
 
   .reset-btn:hover { border-color: var(--pod-orange); color: var(--pod-orange); }
 
-  .presenter-link {
-    display: block;
-    width: 100%;
-    margin-top: 30px;
-    padding: 10px 12px;
-    border: none;
-    background: transparent;
-    color: var(--muted);
-    font: inherit;
-    font-size: 0.76rem;
-    font-weight: 600;
-    text-align: center;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    cursor: pointer;
-  }
-
-  .presenter-link:hover { color: var(--pod-ink); }
-
   .org-note {
-    margin-top: 14px;
+    margin-top: 4px;
     color: var(--muted);
     font-size: 0.72rem;
     line-height: 1.45;
-  }
-
-  /* ================= VOTER (PHONE) VIEW ================= */
-  .voter {
-    display: flex;
-    min-height: 100vh;
-    align-items: center;
-    justify-content: center;
-    padding: 28px 20px 40px;
-  }
-
-  .voter-shell {
-    width: 100%;
-    max-width: 420px;
-  }
-
-  .poll-card + .poll-card {
-    margin-top: 40px;
-    padding-top: 36px;
-    border-top: 1px dashed var(--line);
-  }
-
-  .voter-eyebrow {
-    display: block;
-    margin-bottom: 6px;
-    color: var(--pod-orange);
-    font-size: 0.76rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
     text-align: center;
-  }
-
-  .poll-card h1 {
-    color: var(--pod-ink);
-    font-size: clamp(1.2rem, 5.6vw, 1.55rem);
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    text-align: center;
-  }
-
-  .poll-card > p.hint {
-    margin-top: 8px;
-    color: var(--muted);
-    font-size: 0.92rem;
-    text-align: center;
-  }
-
-  .options {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 26px;
-  }
-
-  .option {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 16px 18px;
-    border: 2px solid var(--line);
-    border-radius: 16px;
-    background: var(--pod-surface);
-    color: var(--pod-ink);
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-    transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
-  }
-
-  .option:active { transform: scale(0.985); }
-
-  .option-swatch {
-    flex: none;
-    width: 14px;
-    height: 40px;
-    border-radius: 6px;
-    background: var(--tier-color);
-  }
-
-  .option-text strong {
-    display: block;
-    font-size: 1.02rem;
-    font-weight: 750;
-  }
-
-  .option-text span {
-    display: block;
-    margin-top: 2px;
-    color: var(--muted);
-    font-size: 0.82rem;
-  }
-
-  .option-check {
-    margin-left: auto;
-    flex: none;
-    width: 24px;
-    height: 24px;
-    border-radius: 7px;
-    border: 2px solid var(--line);
-    display: grid;
-    place-items: center;
-  }
-
-  .option-check svg {
-    width: 14px;
-    height: 14px;
-    opacity: 0;
-    stroke: #fff;
-    stroke-width: 3;
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .option.is-selected {
-    border-color: var(--tier-color);
-    background: color-mix(in srgb, var(--tier-color) 12%, #fff);
-  }
-
-  .option.is-selected .option-check {
-    background: var(--tier-color);
-    border-color: var(--tier-color);
-  }
-
-  .option.is-selected .option-check svg { opacity: 1; }
-
-  .voter-confirm {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    justify-content: center;
-    margin-top: 20px;
-    color: var(--pod-green);
-    font-size: 0.88rem;
-    font-weight: 700;
-    text-align: center;
-  }
-
-  .voter-confirm[hidden] { display: none; }
-
-  .voter-progress {
-    display: block;
-    margin-bottom: 4px;
-    color: var(--muted);
-    font-size: 0.74rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    text-align: center;
-  }
-
-  .next-btn {
-    display: block;
-    width: 100%;
-    margin-top: 26px;
-    padding: 15px 18px;
-    border: none;
-    border-radius: 14px;
-    background: var(--pod-ink);
-    color: #fff;
-    font: inherit;
-    font-size: 1rem;
-    font-weight: 800;
-    text-align: center;
-    cursor: pointer;
-    transition: opacity 0.2s ease;
-  }
-
-  .next-btn:hover { opacity: 0.9; }
-
-  .thanks-card {
-    padding: 10px 4px;
-    text-align: center;
-  }
-
-  .thanks-card h1 {
-    color: var(--pod-ink);
-    font-size: clamp(1.2rem, 5.6vw, 1.55rem);
-    font-weight: 800;
-    letter-spacing: -0.02em;
-  }
-
-  .thanks-card p {
-    margin-top: 10px;
-    color: var(--muted);
-    font-size: 0.94rem;
-    line-height: 1.45;
   }
 
   @media (max-width: 860px) {
@@ -547,42 +335,22 @@
 </head>
 <body>
 
-<div id="presenter" class="stage" hidden>
+<div id="presenter" class="stage">
   <div id="presenterBanner" class="status-banner"></div>
 
   <div class="polls-column" id="pollsColumn"></div>
 
-  <aside class="join-card">
-    <h2>Votez depuis votre téléphone</h2>
-    <p>Scannez ce code — aucune app à installer.</p>
-    <div class="qr-frame" id="qrFrame">
-      <p class="qr-fallback" id="qrFallback" hidden>QR indisponible hors-ligne : utilisez le lien ci-dessous.</p>
-    </div>
-    <code class="join-url" id="joinUrl">…</code>
-    <div class="reset-row">
-      <button type="button" class="reset-btn" id="toVoterBtn">Revenir à la vue vote (sur cet appareil)</button>
-    </div>
-    <p class="org-note">Ouvert à tout le monde — aucun compte requis, ni côté vote ni côté écran.</p>
-  </aside>
+  <aside class="join-card" id="joinCard"></aside>
 </div>
 
-<div id="voter" class="voter" hidden>
-  <div class="voter-shell">
-    <div id="voterBanner" class="status-banner"></div>
-
-    <div id="pollCards"></div>
-
-    <button type="button" class="presenter-link" id="toPresenterBtn">Vue présentateur (à réserver à l’ordinateur qui projette)</button>
-  </div>
-</div>
-
+<script src="./vote-common.js"></script>
 <script>
 (function () {
   'use strict';
 
-  // Two independent live votes, each its own Firebase collection. A voter
-  // can answer either, both, or neither — order on the page just follows
-  // the deck's own order (pyramid scene, then personae scene).
+  // Two independent live votes, each its own Firebase collection, each its own
+  // standalone voter page (and QR code) so scanning one never shows the other
+  // poll's options — order here just follows the deck's own order.
   var POLLS = [
     {
       key: 'pyramid',
@@ -590,10 +358,8 @@
       eyebrow: 'POD Odyssey — Les outils IA',
       presenterTitle: 'La pyramide, votée en direct',
       presenterSub: 'Scannez le QR code pour indiquer les initiatives déjà en place ou en cours dans votre entreprise. Le résultat se met à jour ici en temps réel.',
-      voterTitle: 'Quelles initiatives avez-vous déjà mises en place, ou en cours d’implémentation, dans votre entreprise ?',
-      hint: 'Cochez toutes celles qui s’appliquent. Vous pouvez changer d’avis à tout moment.',
-      confirmText: 'Sélection enregistrée — regardez la pyramide sur l’écran.',
       participantsLabel: 'participants',
+      pageUrl: 'https://maudgub.github.io/pod-odyssey-interact/vote-pyramid.html',
       // Widths mirror the real pyramid's proportions (floor 1 = base = 100).
       options: [
         { id: '0', label: 'Assistance Ad hoc', sub: 'AI Chat & agents', color: '#D9AB16', width: 100 },
@@ -609,10 +375,8 @@
       eyebrow: 'POD Odyssey — Vos équipes',
       presenterTitle: 'Les profils de vos équipes, en direct',
       presenterSub: 'Scannez le QR code pour indiquer les profils que vous reconnaissez déjà dans vos équipes. Le résultat se met à jour ici en temps réel.',
-      voterTitle: 'Quels profils reconnaissez-vous déjà dans vos équipes ?',
-      hint: 'Cochez tous les profils que vous observez. Vous pouvez changer d’avis à tout moment.',
-      confirmText: 'Sélection enregistrée — regardez l’écran.',
       participantsLabel: 'participants',
+      pageUrl: 'https://maudgub.github.io/pod-odyssey-interact/vote-personae.html',
       options: [
         { id: 'newbie', label: 'Le réticent', sub: '« Jamais essayé »', color: '#A8C4B8', width: 100 },
         { id: 'explorateur', label: 'L’illusionné', sub: '« J’utilise en perso »', color: '#E8C96A', width: 100 },
@@ -621,99 +385,6 @@
       ]
     }
   ];
-
-  // This page's public, stable link — hosted on GitHub Pages, outside
-  // claude.ai, so it opens for anyone with no account needed. "presenter" vs.
-  // "voter" is a per-device choice (below), not something encoded in the URL.
-  // The deck's own QR codes append "?poll=<key>" so scanning from a given scene
-  // jumps straight to that scene's poll (see getInitialPollIndex below); the QR
-  // shown here in the presenter's join-card omits it and just starts at poll 1.
-  var PAGE_URL = 'https://maudgub.github.io/pod-odyssey-interact/';
-  var PRESENTER_KEY = 'podPyramidPresenterMode';
-
-  function getInitialPollIndex() {
-    try {
-      var key = new URLSearchParams(location.search).get('poll');
-      var idx = POLLS.findIndex(function (p) { return p.key === key; });
-      return idx >= 0 ? idx : 0;
-    } catch (e) {
-      return 0;
-    }
-  }
-
-  // Public Firebase project config — safe to expose client-side; access to
-  // the vote data is controlled by the Realtime Database rules, not by
-  // hiding this key. Anyone with the page link can vote, no account needed.
-  var FIREBASE_CONFIG = {
-    apiKey: 'AIzaSyDBsFDKyEc6jE7L7u7yK3xWQ7a9hi_psCs',
-    authDomain: 'pod-odyssey-interact.firebaseapp.com',
-    databaseURL: 'https://pod-odyssey-interact-default-rtdb.europe-west1.firebasedatabase.app',
-    projectId: 'pod-odyssey-interact',
-    storageBucket: 'pod-odyssey-interact.firebasestorage.app',
-    messagingSenderId: '1075684337730',
-    appId: '1:1075684337730:web:5ace185c293043950165db'
-  };
-
-  function isPresenterDevice() {
-    try {
-      return localStorage.getItem(PRESENTER_KEY) === '1';
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function setPresenterDevice(value) {
-    try {
-      localStorage.setItem(PRESENTER_KEY, value ? '1' : '0');
-    } catch (e) {}
-  }
-
-  // Default view is the vote (most people opening the link are the
-  // audience); the projecting laptop switches itself once via the link
-  // at the bottom of the vote view, and that choice sticks on that device.
-  var isVoter = !isPresenterDevice();
-
-  document.getElementById(isVoter ? 'voter' : 'presenter').hidden = false;
-
-  function showBanner(id, text) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = text;
-    el.classList.add('is-visible');
-  }
-
-  function getVoterId() {
-    try {
-      var k = 'podPyramidVoterId';
-      var v = localStorage.getItem(k);
-      if (!v) {
-        v = 'v-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
-        localStorage.setItem(k, v);
-      }
-      return v;
-    } catch (e) {
-      return 'v-' + Math.random().toString(36).slice(2, 10);
-    }
-  }
-
-  function renderQR() {
-    var frame = document.getElementById('qrFrame');
-    var fallback = document.getElementById('qrFallback');
-    if (window.QRCode) {
-      try {
-        new QRCode(frame, {
-          text: PAGE_URL,
-          width: 176,
-          height: 176,
-          colorDark: '#002060',
-          colorLight: '#ffffff',
-          correctLevel: QRCode.CorrectLevel.M
-        });
-        return;
-      } catch (e) {}
-    }
-    if (fallback) fallback.hidden = false;
-  }
 
   function buildPresenterPoll(poll) {
     var column = document.getElementById('pollsColumn');
@@ -754,70 +425,17 @@
     });
   }
 
-  // Voter view shows exactly one poll per screen — the audience taps "Suivant" to
-  // move on, so nobody sees the next scene's poll options before the talk gets there.
-  function buildVoterPoll(poll, index, total) {
-    var wrap = document.getElementById('pollCards');
-    var isLast = index === total - 1;
-    var section = document.createElement('section');
-    section.className = 'poll-card';
-    section.innerHTML =
-      (total > 1 ? '<span class="voter-progress">Vote ' + (index + 1) + ' / ' + total + '</span>' : '') +
-      '<span class="voter-eyebrow">' + poll.eyebrow + '</span>' +
-      '<h1>' + poll.voterTitle + '</h1>' +
-      '<p class="hint">' + poll.hint + '</p>' +
-      '<div class="options" id="options-' + poll.key + '"></div>' +
-      '<p class="voter-confirm" id="confirm-' + poll.key + '" hidden>' +
-        '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' +
-        poll.confirmText +
-      '</p>' +
-      '<button type="button" class="next-btn" id="next-' + poll.key + '">' + (isLast ? 'Terminé' : 'Suivant') + '</button>';
-    wrap.appendChild(section);
-
-    var opts = document.getElementById('options-' + poll.key);
-    poll.options.forEach(function (o) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'option';
-      btn.dataset.opt = o.id;
-      btn.style.setProperty('--tier-color', o.color);
-      btn.innerHTML =
-        '<span class="option-swatch"></span>' +
-        '<span class="option-text"><strong>' + o.label + '</strong><span>' + o.sub + '</span></span>' +
-        '<span class="option-check"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>';
-      opts.appendChild(btn);
-    });
-
-    document.getElementById('next-' + poll.key).addEventListener('click', function () {
-      if (isLast) {
-        renderThanksCard();
-      } else {
-        voterPollIndex = index + 1;
-        renderVoterPoll(voterPollIndex);
-      }
-    });
-  }
-
-  function renderThanksCard() {
-    var wrap = document.getElementById('pollCards');
-    wrap.innerHTML =
-      '<section class="poll-card thanks-card">' +
-        '<h1>Merci d’avoir voté !</h1>' +
-        '<p>Regardez l’écran — vos réponses s’affichent en direct.</p>' +
-      '</section>';
-  }
-
-  // firebaseRoot is set once Firebase is ready (see main()); renderVoterPoll re-renders
-  // and re-wires just the current poll each time the voter taps "Suivant".
-  var firebaseRoot = null;
-  function renderVoterPoll(index) {
-    var poll = POLLS[index];
-    if (!poll) return;
-    document.getElementById('pollCards').innerHTML = '';
-    buildVoterPoll(poll, index, POLLS.length);
-    // Paging works even if Firebase never came up (offline, blocked) — only
-    // persisting the vote itself needs it, same resilience as the original page.
-    if (firebaseRoot) wirePoll(poll, firebaseRoot);
+  function buildJoinTile(poll) {
+    var card = document.getElementById('joinCard');
+    var tile = document.createElement('div');
+    tile.className = 'join-tile';
+    tile.innerHTML =
+      '<h2>' + poll.eyebrow + '</h2>' +
+      '<p>Scannez ce code — aucune app à installer.</p>' +
+      '<div class="qr-frame" id="qrFrame-' + poll.key + '"></div>' +
+      '<code class="join-url">' + poll.pageUrl.replace('https://', '') + '</code>';
+    card.appendChild(tile);
+    PodVote.renderQR('qrFrame-' + poll.key, poll.pageUrl);
   }
 
   function applyTally(poll, counts, total) {
@@ -836,127 +454,51 @@
     });
   }
 
-  function wirePoll(poll, votesRef) {
-    var pollRef = votesRef.child(poll.dbPath);
-
-    if (isVoter) {
-      var voterId = getVoterId();
-      var myRef = pollRef.child(voterId);
-      var selected = {};
-
-      var persistSelection = function () {
-        var hasAny = Object.keys(selected).some(function (k) { return selected[k]; });
-        myRef.set({ floors: selected, ts: Date.now() }).then(function () {
-          var confirmEl = document.getElementById('confirm-' + poll.key);
-          if (confirmEl) confirmEl.hidden = !hasAny;
-        }).catch(function () {
-          showBanner('voterBanner', 'La sélection n’a pas pu être enregistrée — réessayez.');
-        });
-      };
-
-      myRef.once('value').then(function (snap) {
-        if (!snap.exists()) return;
-        var data = snap.val();
-        if (data && data.floors && typeof data.floors === 'object') {
-          selected = data.floors;
-        } else if (data && data.floor !== undefined && data.floor !== null) {
-          selected[data.floor] = true;
+  function wirePresenterPoll(poll, root) {
+    var pollRef = root.child(poll.dbPath);
+    pollRef.on('value', function (snap) {
+      var counts = {};
+      var total = 0;
+      snap.forEach(function (child) {
+        var d = child.val();
+        var picks = null;
+        if (d && d.floors && typeof d.floors === 'object') {
+          picks = Object.keys(d.floors).filter(function (k) { return d.floors[k]; });
+        } else if (d && d.floor !== undefined && d.floor !== null) {
+          picks = [String(d.floor)];
         }
-        var any = false;
-        Object.keys(selected).forEach(function (k) {
-          if (!selected[k]) return;
-          any = true;
-          var el = document.querySelector('.option[data-opt="' + k + '"]');
-          if (el) el.classList.add('is-selected');
-        });
-        var confirmEl = document.getElementById('confirm-' + poll.key);
-        if (confirmEl) confirmEl.hidden = !any;
-      }).catch(function () {});
-
-      document.querySelectorAll('#options-' + poll.key + ' .option').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          var optId = btn.dataset.opt;
-          var nowSelected = !btn.classList.contains('is-selected');
-          btn.classList.toggle('is-selected', nowSelected);
-          selected[optId] = nowSelected ? true : null;
-          persistSelection();
-        });
+        if (picks && picks.length) {
+          total++;
+          picks.forEach(function (id) {
+            counts[id] = (counts[id] || 0) + 1;
+          });
+        }
       });
-    } else {
-      pollRef.on('value', function (snap) {
-        var counts = {};
-        var total = 0;
-        snap.forEach(function (child) {
-          var d = child.val();
-          var picks = null;
-          if (d && d.floors && typeof d.floors === 'object') {
-            picks = Object.keys(d.floors).filter(function (k) { return d.floors[k]; });
-          } else if (d && d.floor !== undefined && d.floor !== null) {
-            picks = [String(d.floor)];
-          }
-          if (picks && picks.length) {
-            total++;
-            picks.forEach(function (id) {
-              counts[id] = (counts[id] || 0) + 1;
-            });
-          }
-        });
-        applyTally(poll, counts, total);
-      }, function () {
-        showBanner('presenterBanner', 'Connexion au vote en direct interrompue.');
-      });
+      applyTally(poll, counts, total);
+    }, function () {
+      PodVote.showBanner('presenterBanner', 'Connexion au vote en direct interrompue.');
+    });
 
-      var resetBtn = document.getElementById('reset-' + poll.key);
-      if (resetBtn) {
-        resetBtn.addEventListener('click', function () {
-          pollRef.remove().catch(function () {});
-        });
-      }
+    var resetBtn = document.getElementById('reset-' + poll.key);
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function () {
+        pollRef.remove().catch(function () {});
+      });
     }
   }
 
-  var voterPollIndex = getInitialPollIndex();
-
   function main() {
-    document.getElementById('joinUrl').textContent = PAGE_URL;
-    renderQR();
-
-    if (isVoter) {
-      // Built unwired first so the voter sees the poll immediately even if
-      // Firebase is slow or fails to load; wiring (below) attaches once ready.
-      buildVoterPoll(POLLS[voterPollIndex], voterPollIndex, POLLS.length);
-    } else {
-      POLLS.forEach(buildPresenterPoll);
-    }
-
-    var toPresenterBtn = document.getElementById('toPresenterBtn');
-    if (toPresenterBtn) {
-      toPresenterBtn.addEventListener('click', function () {
-        setPresenterDevice(true);
-        location.reload();
-      });
-    }
-    var toVoterBtn = document.getElementById('toVoterBtn');
-    if (toVoterBtn) {
-      toVoterBtn.addEventListener('click', function () {
-        setPresenterDevice(false);
-        location.reload();
-      });
-    }
+    POLLS.forEach(buildPresenterPoll);
+    POLLS.forEach(buildJoinTile);
 
     if (typeof firebase === 'undefined' || !firebase.database) {
-      showBanner(isVoter ? 'voterBanner' : 'presenterBanner', 'Le service de vote n’a pas pu se charger — vérifiez votre connexion et rechargez la page.');
+      PodVote.showBanner('presenterBanner', 'Le service de vote n’a pas pu se charger — vérifiez votre connexion et rechargez la page.');
       return;
     }
 
-    firebase.initializeApp(FIREBASE_CONFIG);
+    firebase.initializeApp(PodVote.FIREBASE_CONFIG);
     var root = firebase.database().ref();
-    if (isVoter) {
-      firebaseRoot = root;
-      wirePoll(POLLS[voterPollIndex], root);
-    } else {
-      POLLS.forEach(function (poll) { wirePoll(poll, root); });
-    }
+    POLLS.forEach(function (poll) { wirePresenterPoll(poll, root); });
   }
 
   main();

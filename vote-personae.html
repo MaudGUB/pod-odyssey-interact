@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vote — Les profils de vos équipes</title>
+<link rel="stylesheet" href="./vote.css">
+<script src="https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-database.js"></script>
+</head>
+<body>
+
+<div class="voter">
+  <div class="voter-shell">
+    <div id="voterBanner" class="status-banner"></div>
+    <div id="pollCards"></div>
+    <span class="voter-footnote">POD Odyssey — ouvert à tout le monde, aucun compte requis.</span>
+  </div>
+</div>
+
+<script src="./vote-common.js"></script>
+<script>
+(function () {
+  'use strict';
+  PodVote.mountVoterPoll({
+    key: 'personae',
+    dbPath: 'personaVotes',
+    eyebrow: 'POD Odyssey — Vos équipes',
+    voterTitle: 'Quels profils reconnaissez-vous déjà dans vos équipes ?',
+    hint: 'Cochez tous les profils que vous observez. Vous pouvez changer d’avis à tout moment.',
+    confirmText: 'Sélection enregistrée — regardez l’écran.',
+    options: [
+      { id: 'newbie', label: 'Le réticent', sub: '« Jamais essayé »', color: '#A8C4B8' },
+      { id: 'explorateur', label: 'L’illusionné', sub: '« J’utilise en perso »', color: '#E8C96A' },
+      { id: 'batisseur', label: 'Le frustré', sub: '« J’ai essayé »', color: '#F5926A' },
+      { id: 'champion', label: 'Le shadow builder', sub: '« J’utilise à fond »', color: '#C8B5E8' }
+    ]
+  });
+})();
+</script>
+</body>
+</html>

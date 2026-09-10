@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vote — La pyramide des outils IA</title>
+<link rel="stylesheet" href="./vote.css">
+<script src="https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-database.js"></script>
+</head>
+<body>
+
+<div class="voter">
+  <div class="voter-shell">
+    <div id="voterBanner" class="status-banner"></div>
+    <div id="pollCards"></div>
+    <span class="voter-footnote">POD Odyssey — ouvert à tout le monde, aucun compte requis.</span>
+  </div>
+</div>
+
+<script src="./vote-common.js"></script>
+<script>
+(function () {
+  'use strict';
+  PodVote.mountVoterPoll({
+    key: 'pyramid',
+    dbPath: 'votes',
+    eyebrow: 'POD Odyssey — Les outils IA',
+    voterTitle: 'Quelles initiatives avez-vous déjà mises en place, ou en cours d’implémentation, dans votre entreprise ?',
+    hint: 'Cochez toutes celles qui s’appliquent. Vous pouvez changer d’avis à tout moment.',
+    confirmText: 'Sélection enregistrée — regardez la pyramide sur l’écran.',
+    options: [
+      { id: '0', label: 'Assistance Ad hoc', sub: 'AI Chat & agents', color: '#D9AB16' },
+      { id: '1', label: 'Vibe coding', sub: 'Développement de produits avec l’IA', color: '#1F648F' },
+      { id: '2', label: 'Agentique', sub: 'Automatisation de process métier', color: '#AA2078' },
+      { id: '3', label: 'Talk to your Data', sub: 'Décisionnel & analytique via l’IA', color: '#2C9D62' },
+      { id: '4', label: 'Product Build', sub: 'Création de prototypes avec l’IA', color: '#EC7C32' }
+    ]
+  });
+})();
+</script>
+</body>
+</html>
